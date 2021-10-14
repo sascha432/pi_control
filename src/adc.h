@@ -37,56 +37,62 @@ public:
     // voltage calibration
     static constexpr float kU1Cal = 1.0;
     static constexpr float kU2Cal = 1.0;
+    static constexpr float kU3Cal = 1.0;
 
-    // up to 6V
+    // up to 6V (kU1Max)
     static constexpr float kU1R1 = 2200.0;
     static constexpr float kU1R2 = 10000.0;
     static constexpr float kU1Divider = (((kU1R2 + kU1R1) / kU1R1) * kU1Cal);
+    static constexpr float kU1Max = kReferenceVoltage * kU1Divider;
 
-    // up to 22V
+    // up to 22V (kU2Max)
     static constexpr float kU2R1 = 2400.0;
     static constexpr float kU2R2 = 47000.0;
     static constexpr float kU2Divider = (((kU2R2 + kU2R1) / kU2R1) * kU2Cal);
+    static constexpr float kU2Max = kReferenceVoltage * kU2Divider;
+
+    // up to 4.6V (kU3Max)
+    static constexpr float kU3R1 = 4700.0;
+    static constexpr float kU3R2 = 15000.0;
+    static constexpr float kU3Divider = (((kU3R2 + kU3R1) / kU3R1) * kU3Cal);
+    static constexpr float kU3Max = kReferenceVoltage * kU3Divider;
 
     static constexpr float kVoltage1Multiplier = (kU1Cal * (kU1Divider * kReferenceVoltage / (kAdcValues * static_cast<float>(kAverageSampleCount))));
     static constexpr float kVoltage2Multiplier = (kU2Cal * (kU2Divider * kReferenceVoltage / (kAdcValues * static_cast<float>(kAverageSampleCount))));
+    static constexpr float kVoltage3Multiplier = (kU3Cal * (kU3Divider * kReferenceVoltage / (kAdcValues * static_cast<float>(kAverageSampleCount))));
 
     // current calibration
     static constexpr float kI1Cal = 0.934066364;
     static constexpr float kI2Cal = 0.927767444;
 
-    // max. current
-    static constexpr float kI1MaxA = 3.23 * kI1Cal;
-    static constexpr float kI2MaxA = 2.93 * kI2Cal;
-
     // MAX471
-
     // R = U / (I * 500µA/V)
-    // 0.680 = U / (I * 0.500)
-    // 0.680 = (ADC / 1024) / (I * 0.500)
-    // max. 3.23A * kI1Cal = kI1MaxA
+    static constexpr float kI1Rout = 680; // Rout in ohm
+    static constexpr float kI2Rout = 750; // Rout in ohm
+    static constexpr float kI1MaxA = ((kReferenceVoltage * 2) / (kI1Rout / 1000.0)) * kI1Cal;
+    static constexpr float kI2MaxA = ((kReferenceVoltage * 2) / (kI2Rout / 1000.0)) * kI2Cal;
+
+    static constexpr float kCurrent1Multiplier = ((kReferenceVoltage * 2) / (kI1Rout / 1000.0)) * kI1Cal / (kAverageSampleCount * kAdcValues);
+    static constexpr float kCurrent2Multiplier = ((kReferenceVoltage * 2) / (kI2Rout / 1000.0)) * kI2Cal / (kAverageSampleCount * kAdcValues);
+
     inline float ADC2Ampere1(uint16_t adc) const
     {
-        return (adc * 25.0) / (kAverageSampleCount * 8704.0 * kI1Cal);
+        return adc * kCurrent1Multiplier;
     }
 
     inline float ADC2Watt1(uint16_t Uadc, uint16_t Iadc) const
     {
-        return (Uadc * Iadc * (25.0 * kVoltage1Multiplier)) / (kAverageSampleCount * kAverageSampleCount * 8704.0 * kI1Cal);
+        return Uadc * Iadc * (kCurrent1Multiplier * kVoltage1Multiplier);
     }
 
-    // R = U / (I * 500µA/V)
-    // 0.750 = U / (I * 0.500)
-    // 0.750 = (ADC / 1024) / (I * 0.500)
-    // max. 2.93A * kI2Cal = kI2MaxA
     inline float ADC2Ampere2(uint16_t adc) const
     {
-        return (adc) / (kAverageSampleCount * 384.0 * kI2Cal);
+        return adc * kCurrent2Multiplier;
     }
 
     inline float ADC2Watt2(uint16_t Uadc, uint16_t Iadc) const
     {
-        return (Uadc * Iadc * kVoltage2Multiplier) / (kAverageSampleCount * kAverageSampleCount * 384.0 * kI2Cal);
+        return Uadc * Iadc * (kCurrent2Multiplier * kVoltage2Multiplier);
     }
 
 
@@ -97,6 +103,7 @@ public:
         CURRENT1,
         VOLTAGE2,
         CURRENT2,
+        VOLTAGE3,
         MAX
     };
 
@@ -114,6 +121,8 @@ public:
     float getVoltage2_V() const;
     float getCurrent2_A() const;
     float getPower2_W() const;
+
+    float getVoltage3_V() const;
 
     uint16_t getADCSum(uint8_t channel) const;
     uint16_t getADCSum(AnalogPinType channel) const;
@@ -164,6 +173,9 @@ inline void ADCInterrupt::_selectNextSourcePin()
             break;
         case AnalogPinType::CURRENT2:
             ADMUX = (kAnalogSource << 6) | (PIN_CURRENT2 - 14);
+            break;
+        case AnalogPinType::VOLTAGE3:
+            ADMUX = (kAnalogSource << 6) | (PIN_VOLTAGE3 - 14);
             break;
         case AnalogPinType::MAX:
             break;
@@ -217,6 +229,15 @@ inline float ADCInterrupt::getVoltage2_V() const
         voltage = getADCSum(AnalogPinType::VOLTAGE2);
     }
     return voltage * kVoltage2Multiplier;
+}
+
+inline float ADCInterrupt::getVoltage3_V() const
+{
+    uint16_t voltage;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        voltage = getADCSum(AnalogPinType::VOLTAGE3);
+    }
+    return voltage * kVoltage3Multiplier;
 }
 
 inline float ADCInterrupt::getCurrent1_A() const

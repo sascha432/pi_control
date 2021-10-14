@@ -9,3 +9,11 @@
 #include <avr/wdt.h>
 #include "def.h"
 #include "helpers.h"
+
+class RegMem;
+class TwiBuffer;
+class Fan;
+
+extern RegMem regMem;
+extern TwiBuffer twiBuffer;
+extern Fan fan;

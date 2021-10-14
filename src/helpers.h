@@ -360,20 +360,20 @@ inline size_t Serial_flush_input() {
 }
 
 #ifndef _STRINGIFY
-#define _STRINGIFY(...)                         ___STRINGIFY(__VA_ARGS__)
+#    define _STRINGIFY(...) ___STRINGIFY(__VA_ARGS__)
 #endif
-#define ___STRINGIFY(...)                       #__VA_ARGS__
+#define ___STRINGIFY(...) #__VA_ARGS__
 
 #ifndef FPSTR
-#define FPSTR(str)                              reinterpret_cast<const __FlashStringHelper *>(str)
+#    define FPSTR(str) reinterpret_cast<const __FlashStringHelper *>(str)
 #endif
 
 #ifndef F
-#define F(str)                                  FPSTR(PSTR(str))
+#    define F(str) FPSTR(PSTR(str))
 #endif
 
-template<typename ..._Args>
-static inline constexpr const size_t size_of(_Args&&...args) {
+template <typename... _Args>
+static inline constexpr const size_t size_of(_Args &&...args)
+{
     return sizeof...(args);
 };
-

@@ -10,3 +10,5 @@ This is more or less a private project, but maybe someone is interested in looki
 - UPS battery monitoring and shutdown when the battery state is critical
 - Status LEDs
 - Reset and shutdown button
+- Watchdog to reboot the system if it does not respond anymore
+
