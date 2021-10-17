@@ -19,9 +19,6 @@ public:
 protected:
     virtual boolean _update_button_state() override
     {
-        return !(buttons._getPortBChangeSet() & _BitMask);
+        return !(buttons.getPortBState() & _BitMask);
     }
-
-// private:
-//     uint8_t _port;
 };

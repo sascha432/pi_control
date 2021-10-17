@@ -12,12 +12,28 @@ extern InterruptPushButton<PinChangeFlagsEnum::BUTTON3> button3;
 
 void Buttons::loop()
 {
-    PinChangeFlagsEnum flags;
-    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-        // clear flags
-        flags = _changeFlags;
-        _changeFlags = PinChangedType::NONE;
+    // process events
+    ATOMIC_BLOCK(LOOP_METHOD_ATOMIC_BLOCK) {
+        if (button1.isPressed()) {
+            button1.update();
+        }
     }
+    ATOMIC_BLOCK(LOOP_METHOD_ATOMIC_BLOCK) {
+        if (button2.isPressed()) {
+            button2.update();
+        }
+    }
+    ATOMIC_BLOCK(LOOP_METHOD_ATOMIC_BLOCK) {
+        if (button3.isPressed()) {
+            button3.update();
+        }
+    }
+}
+
+inline __attribute__((always_inline)) void Buttons::handleButtons()
+{
+    PinChangeFlagsEnum flags = _changeFlags;
+    _changeFlags = PinChangedType::NONE;
     // process events
     if (flags & PinChangedType::BUTTON1) {
         button1.update();
@@ -25,7 +41,7 @@ void Buttons::loop()
     if (flags & PinChangedType::BUTTON2) {
         button2.update();
     }
-    if (flags & PinChangedType::BUTTON2) {
+    if (flags & PinChangedType::BUTTON3) {
         button3.update();
     }
 }
@@ -33,4 +49,5 @@ void Buttons::loop()
 ISR(PCINT0_vect)
 {
     buttons.ISRHandler();
+    buttons.handleButtons();
 }

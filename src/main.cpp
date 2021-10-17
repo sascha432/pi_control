@@ -164,33 +164,15 @@ void clearScreen()
 
 void buttonsPressHandler(Button &btn)
 {
+    // reset timer when the button is pressed
     if (&btn == &button1) {
-        buttons.press(0);
+        digitalWrite(PIN_LED1, LOW);
     }
     else if (&btn == &button2) {
-        buttons.press(1);
+        digitalWrite(PIN_LED2, LOW);
     }
     else if (&btn == &button3) {
-        buttons.press(2);
-    }
-}
-
-
-void buttonsHoldRepeatHandler(Button &btn, uint16_t duration, uint16_t repeat)
-{
-    #if DEBUG
-        Serial.print(F("hold "));
-        Serial.print((uint16_t)&btn, 16);
-        Serial.print(' ');
-        Serial.print(duration);
-        Serial.print(' ');
-        Serial.println(repeat);
-    #endif
-    if (&btn == &button1) {
-
-    }
-    else if (&btn == &button2) {
-
+        digitalWrite(PIN_LED3, LOW);
     }
 }
 
@@ -203,13 +185,64 @@ void buttonsReleaseHandler(Button &btn, uint16_t duration)
         Serial.println(duration);
     #endif
     if (&btn == &button1) {
-
+        if (duration > POWER_OFF_DELAY) {
+            // disable button
+            buttons.stopPinChangeInterrupt(PIN_BUTTON1);
+            // send halt signal
+        }
+        digitalWrite(PIN_LED1, (duration > POWER_OFF_DELAY));
     }
     else if (&btn == &button2) {
-
+        if (duration > HARD_RESET_DELAY) {
+            // disable button
+            buttons.stopPinChangeInterrupt(PIN_BUTTON2);
+            // force hard reset
+        }
+        else if (duration > SOFT_RESET_DELAY) {
+            // leave button active to be able to force hard reset
+            // send reboot signal
+        }
+        digitalWrite(PIN_LED2, (duration > SOFT_RESET_DELAY));
+    }
+    else if (&btn == &button3) {
+        digitalWrite(PIN_LED3, LOW);
     }
 }
 
+void buttonsHoldRepeatHandler(Button &btn, uint16_t duration, uint16_t repeat)
+{
+    #if DEBUG
+        Serial.print(F("hold "));
+        Serial.print((uint16_t)&btn, 16);
+        Serial.print(' ');
+        Serial.print(duration);
+        Serial.print(' ');
+        Serial.println(repeat);
+    #endif
+    // blink LEDs while the button is held down
+    if (&btn == &button1) {
+        if (duration > POWER_OFF_DELAY) {
+            buttonsReleaseHandler(btn, duration);
+        }
+        else {
+            digitalWrite(PIN_LED1, ((repeat / 4) & 1) == 0);
+        }
+    }
+    else if (&btn == &button2) {
+        if (duration > HARD_RESET_DELAY) {
+            buttonsReleaseHandler(btn, duration);
+        }
+        else if (duration > SOFT_RESET_DELAY) {
+            digitalWrite(PIN_LED2, (repeat & 1) == 0);
+        }
+        else {
+            digitalWrite(PIN_LED2, ((repeat / 4) & 1) == 0);
+        }
+    }
+    else if (&btn == &button3) {
+        // unused
+    }
+}
 
 void setup()
 {
@@ -234,21 +267,28 @@ void setup()
         fan.begin();
     }
 
+    // setup LEDs
+    digitalWrite(PIN_LED1, LOW);
+    pinMode(PIN_LED1, OUTPUT);
+    digitalWrite(PIN_LED2, LOW);
+    pinMode(PIN_LED2, OUTPUT);
+    digitalWrite(PIN_LED3, LOW);
+    pinMode(PIN_LED3, OUTPUT);
+
     // change pin level interrupts for buttons
     buttons.begin();
 
     button1.onPress(buttonsPressHandler);
-    button1.onHoldRepeat(POWER_OFF_LED_BLINK_INTERVAL, POWER_OFF_LED_BLINK_INTERVAL, buttonsHoldRepeatHandler);
+    button1.onHoldRepeat(Buttons::kBlinkInterval, Buttons::kBlinkInterval, buttonsHoldRepeatHandler);
     button1.onRelease(buttonsReleaseHandler);
     button2.onPress(buttonsPressHandler);
-    button2.onHoldRepeat(RESET_LED_BLINK_INTERVAL, RESET_LED_BLINK_INTERVAL, buttonsHoldRepeatHandler);
+    button2.onHoldRepeat(Buttons::kBlinkInterval, Buttons::kBlinkInterval, buttonsHoldRepeatHandler);
     button2.onRelease(buttonsReleaseHandler);
     #if 0
     button3.onPress(buttonsPressHandler);
     button3.onHoldRepeat(..., ..., buttonsHoldRepeatHandler);
     button3.onRelease(buttonsReleaseHandler);
     #endif
-
 
     // WS2812 LEDs
     pixels.begin();
@@ -316,9 +356,7 @@ void loop()
         detatchServoTimer = 0;
     }
 
-    buttons.loop();
-
-    #if DEBUG
+    #if DEBUG && 0
 
         if (Serial.available()) {
             switch(Serial.read()) {

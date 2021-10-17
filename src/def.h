@@ -43,27 +43,24 @@ enum PinChangeFlagsEnum : uint8_t {
     BUTTON1 = _BV(0),
     BUTTON2 = _BV(2),
     BUTTON3 = _BV(3),
-    ANY = BUTTON1|BUTTON2|BUTTON3
+    ANY = BUTTON1|BUTTON2|BUTTON3,
+    MAX = 3
 };
 
 // power LED
-#define PIN_LED1 12         // PB4
+#define PIN_LED1 7          // PD7
 // reset indicator LED
-#define PIN_LED2 13         // PB5
+#define PIN_LED2 12         // PB4
 // unused
-#define PIN_LED3 7          // PD7
+#define PIN_LED3 13         // PB5
 
 // time required to press the power button to initial a shutdown in milliseconds
 #define POWER_OFF_DELAY 3500
-// blink power LED while the button is pressed
-#define POWER_OFF_LED_BLINK_INTERVAL 500
 
 // time required to force a hard reset in milliseconds
 #define HARD_RESET_DELAY 5000
 // time required to invoke a reboot in milliseconds
 #define SOFT_RESET_DELAY 1000
-// blink reset LED while the button is pressed
-#define RESET_LED_BLINK_INTERVAL 500
 
 #define PIN_MOTION_SENSOR 11    // PB3
 

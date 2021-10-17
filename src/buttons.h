@@ -2,6 +2,8 @@
  * Author: sascha_lammers@gmx.de
  */
 
+// pin change level interrupt handler for PORTB
+
 #pragma once
 
 #include <Arduino.h>
@@ -14,52 +16,62 @@
 #include <PushButton.h>
 #include <Bounce2.h>
 
+#define LOOP_METHOD_ATOMIC_BLOCK ATOMIC_FORCEON
+// #define LOOP_METHOD_ATOMIC_BLOCK ATOMIC_RESTORESTATE
+
 class Buttons {
 public:
     using PinChangedType = volatile PinChangeFlagsEnum;
+
+    static constexpr uint8_t kBlinkInterval = 100;
 
 public:
     Buttons();
 
     void begin();
+    // called from ISR(TIMER2_OVF_vect)
     void loop();
 
+    // both methods are called from the pin change level ISR
     void ISRHandler();
+    void handleButtons();
 
 private:
+    // setup a pin
     void _setupPinChangeInterrupt(uint8_t pin);
-    // get button bits
-    uint8_t _getPortBState() const;
 
 public:
+    // disable interrupt
+    void stopPinChangeInterrupt(uint8_t pin);
+    // get button bits
+    uint8_t getPortBState() const;
     // get changed bits and update state
-    uint8_t _getPortBChangeSet();
-    // button timer handling
-    void press(uint8_t button);
-    void repeat(uint8_t button);
-    void release(uint8_t button);
+    uint8_t getPortBChangeSet();
 
 private:
+    // stores the last button state
     volatile uint8_t _portBState;
+    //
     PinChangedType _changeFlags;
+    // mask for enable pins
     uint8_t _portBMask;
-    uint8_t _buttonsTimer[3];
 };
 
-inline Buttons::Buttons() :
-    _portBState(0),
-    _changeFlags(PinChangedType::NONE)
+inline Buttons::Buttons()
 {
 }
 
 inline void Buttons::begin()
 {
-    // read current state
-    _portBState = _getPortBState();
     // enable interrupts
     _setupPinChangeInterrupt(PIN_BUTTON1);
     _setupPinChangeInterrupt(PIN_BUTTON2);
     _setupPinChangeInterrupt(PIN_BUTTON3);
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        // read current state
+        _portBState = getPortBState();
+        _changeFlags = PinChangedType::NONE;
+    }
 }
 
 inline void Buttons::_setupPinChangeInterrupt(uint8_t pin)
@@ -71,53 +83,29 @@ inline void Buttons::_setupPinChangeInterrupt(uint8_t pin)
     PCICR |= _BV(digitalPinToPCICRbit(pin));
 }
 
-inline uint8_t Buttons::_getPortBState() const
+inline void Buttons::stopPinChangeInterrupt(uint8_t pin)
+{
+    *digitalPinToPCMSK(pin) &= ~_BV(digitalPinToPCMSKbit(pin));
+    _portBState &= ~_BV(digitalPinToPCMSKbit(pin));
+}
+
+inline uint8_t Buttons::getPortBState() const
 {
     return PINB & _portBMask;
 }
 
-inline uint8_t Buttons::_getPortBChangeSet()
+inline uint8_t Buttons::getPortBChangeSet()
 {
-    uint8_t value = _getPortBState();
+    uint8_t value = getPortBState();
     uint8_t changeSet = value ^ _portBState;
     _portBState = value;
     return changeSet;
 }
 
-inline void Buttons::press(uint8_t button)
-{
-    _buttonsTimer[button] = 0;
-    #if DEBUG
-        Serial.print(F("press "));
-        Serial.println(button);
-    #endif
-}
-
-inline void Buttons::repeat(uint8_t button)
-{
-    _buttonsTimer[button]++;
-    #if DEBUG
-        Serial.print(F("repeat "));
-        Serial.print(button);
-        Serial.print(' ');
-        Serial.println(_buttonsTimer[button]);
-    #endif
-}
-
-inline void Buttons::release(uint8_t button)
-{
-    #if DEBUG
-        Serial.print(F("release "));
-        Serial.print(button);
-        Serial.print(' ');
-        Serial.println(_buttonsTimer[button]);
-    #endif
-}
-
 inline __attribute__((always_inline)) void Buttons::ISRHandler()
 {
     // update flags for loop() method
-    _changeFlags = static_cast<PinChangedType>(static_cast<uint8_t>(_changeFlags) | (_getPortBChangeSet() & PinChangedType::ANY));
+    _changeFlags = static_cast<PinChangedType>(static_cast<uint8_t>(_changeFlags) | (getPortBChangeSet() & PinChangedType::ANY));
 }
 
 extern Buttons buttons;
