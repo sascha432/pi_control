@@ -33,9 +33,8 @@ public:
     bool isFanOn() const;
 
 private:
-    // void _updateRpm();
     // called from ISR
-    void _updateRpmNonAtomic();
+    void _updateRpm();
     void _resetTimer();
 
 public:
@@ -101,33 +100,12 @@ inline float Fan::getPwmPercent() const
     return std::clamp<float>(((pwm - FAN_MIN_PWM) * 100) / static_cast<float>(FAN_MAX_PWM - FAN_MIN_PWM), 1.0, 100.0);
 }
 
-// inline void Fan::_updateRpm()
-// {
-//     uint16_t count;
-//     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-//         count = _fanTachoSignal;
-//         _fanTachoSignal = 0;
-//     }
-//     uint16_t time = millis16();
-//     uint16_t diff = time - _fanTimer;
-//     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-//         if (!diff || diff > 1000) {
-//             regMem.fanRpm = 0;
-//         }
-//         else {
-//             regMem.fanRpm = (30000UL * count) / diff;
-//         }
-
-//     }
-//     _fanTimer = time;
-// }
-
 inline void Fan::_resetTimer()
 {
     _rpmUpdateCounter = Fan::kRPMUpdateRate;
 }
 
-inline void Fan::_updateRpmNonAtomic()
+inline void Fan::_updateRpm()
 {
     uint16_t count = _fanTachoSignal;
     _fanTachoSignal = 0;
@@ -146,6 +124,6 @@ inline void Fan::_timerOverflow()
 {
     if (++_rpmUpdateCounter > kRPMUpdateRate) {
         _rpmUpdateCounter = 0;
-        fan._updateRpmNonAtomic();
+        fan._updateRpm();
     }
 }

@@ -13,7 +13,9 @@
 class RegMem;
 class TwiBuffer;
 class Fan;
+class Buttons;
 
 extern RegMem regMem;
 extern TwiBuffer twiBuffer;
 extern Fan fan;
+extern Buttons buttons;

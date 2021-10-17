@@ -8,15 +8,13 @@
 #include "adc.h"
 #include "i2c.h"
 #include "fan.h"
+#include "buttons.h"
 #include "twi_buffer.h"
 #include <Servo.h>
 #include <Adafruit_NeoPixel.h>
 #include <Wire.h>
+#include <interrupt_push_button.h>
 // #include <EEPROM.h>
-// #include <Button.h>
-// #include <ButtonEventCallback.h>
-// #include <PushButton.h>
-// #include <Bounce2.h>
 
 const char __compile_date__[] PROGMEM = { __DATE__ " " __TIME__ };
 
@@ -31,13 +29,13 @@ void setVersion(char *buffer)
 
 RegMem regMem;
 TwiBuffer twiBuffer;
-
 Servo tiltServo;
-
 Fan fan;
-
 Adafruit_NeoPixel pixels(PIN_NEOPIXEL_NUM, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
-
+Buttons buttons;
+InterruptPushButton<PinChangeFlagsEnum::BUTTON1> button1(PIN_BUTTON1, ENABLE_INTERNAL_PULLUP|PRESSED_WHEN_LOW);
+InterruptPushButton<PinChangeFlagsEnum::BUTTON2> button2(PIN_BUTTON2, ENABLE_INTERNAL_PULLUP|PRESSED_WHEN_LOW);
+InterruptPushButton<PinChangeFlagsEnum::BUTTON3> button3(PIN_BUTTON3, ENABLE_INTERNAL_PULLUP|PRESSED_WHEN_LOW);
 
 #if 1
 
@@ -107,6 +105,9 @@ void rainbowCycle(int SpeedDelay)
 
 #endif
 
+// LED helpers to disable output during servo movements
+// blocking interrupts causes the servo to twitch
+
 bool ledsActive = true;
 
 void enableLEDs()
@@ -118,7 +119,6 @@ void enableLEDs()
 void disableLEDs()
 {
     ledsActive = false;
-    // pixels.clear();
     pixels.show();
 }
 
@@ -132,6 +132,7 @@ void pixelsShow()
 uint32_t detatchServoTimer = 0;
 uint16_t detatchServoTimerTimeout;
 
+// timeout in millis to enable LED output after moving the servo
 void moveServo(int16_t tiltServoAngle, uint16_t timeout = 350)
 {
     if (!detatchServoTimer) {
@@ -148,6 +149,8 @@ void moveServo(int16_t tiltServoAngle, uint16_t timeout = 350)
     detatchServoTimerTimeout = timeout;
 }
 
+#if DEBUG
+
 void clearScreen()
 {
     Serial.flush();
@@ -157,10 +160,62 @@ void clearScreen()
     Serial.flush();
 }
 
+#endif
+
+void buttonsPressHandler(Button &btn)
+{
+    if (&btn == &button1) {
+        buttons.press(0);
+    }
+    else if (&btn == &button2) {
+        buttons.press(1);
+    }
+    else if (&btn == &button3) {
+        buttons.press(2);
+    }
+}
+
+
+void buttonsHoldRepeatHandler(Button &btn, uint16_t duration, uint16_t repeat)
+{
+    #if DEBUG
+        Serial.print(F("hold "));
+        Serial.print((uint16_t)&btn, 16);
+        Serial.print(' ');
+        Serial.print(duration);
+        Serial.print(' ');
+        Serial.println(repeat);
+    #endif
+    if (&btn == &button1) {
+
+    }
+    else if (&btn == &button2) {
+
+    }
+}
+
+void buttonsReleaseHandler(Button &btn, uint16_t duration)
+{
+    #if DEBUG
+        Serial.print(F("release "));
+        Serial.print((uint16_t)&btn, 16);
+        Serial.print(' ');
+        Serial.println(duration);
+    #endif
+    if (&btn == &button1) {
+
+    }
+    else if (&btn == &button2) {
+
+    }
+}
+
+
 void setup()
 {
     Serial.begin(115200);
 
+    // I2C client
     regMem = RegMem();
     regMem.begin();
 
@@ -169,13 +224,33 @@ void setup()
     Wire.onRequest(requestEvent);
 
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
+        // timer setup
         TCCR1A = 0;
         TCCR1B = Timer1::kPreScalerBV;
         TCCR2B = (TCCR2B & 0b11111000) | Timer2::kPreScalerBV;
+        // ADC interrupt
         adc.begin();
+        // FAN setup
         fan.begin();
     }
 
+    // change pin level interrupts for buttons
+    buttons.begin();
+
+    button1.onPress(buttonsPressHandler);
+    button1.onHoldRepeat(POWER_OFF_LED_BLINK_INTERVAL, POWER_OFF_LED_BLINK_INTERVAL, buttonsHoldRepeatHandler);
+    button1.onRelease(buttonsReleaseHandler);
+    button2.onPress(buttonsPressHandler);
+    button2.onHoldRepeat(RESET_LED_BLINK_INTERVAL, RESET_LED_BLINK_INTERVAL, buttonsHoldRepeatHandler);
+    button2.onRelease(buttonsReleaseHandler);
+    #if 0
+    button3.onPress(buttonsPressHandler);
+    button3.onHoldRepeat(..., ..., buttonsHoldRepeatHandler);
+    button3.onRelease(buttonsReleaseHandler);
+    #endif
+
+
+    // WS2812 LEDs
     pixels.begin();
     pixels.clear();
     pixels.show();
@@ -191,6 +266,7 @@ void setup()
         clearScreen();
     #endif
 
+    // setup servo and move into default position
     moveServo(SERVO_MAX);
 
 }
@@ -239,6 +315,8 @@ void loop()
         enableLEDs();
         detatchServoTimer = 0;
     }
+
+    buttons.loop();
 
     #if DEBUG
 
