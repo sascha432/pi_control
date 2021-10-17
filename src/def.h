@@ -58,9 +58,9 @@ enum PinChangeFlagsEnum : uint8_t {
 #define POWER_OFF_DELAY 3500
 
 // time required to force a hard reset in milliseconds
-#define HARD_RESET_DELAY 5000
+#define HARD_RESET_DELAY 7500
 // time required to invoke a reboot in milliseconds
-#define SOFT_RESET_DELAY 1000
+#define SOFT_RESET_DELAY 2500
 
 #define PIN_MOTION_SENSOR 11    // PB3
 
