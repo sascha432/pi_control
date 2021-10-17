@@ -55,26 +55,53 @@ enum PinChangeFlagsEnum : uint8_t {
 #define PIN_LED3 13         // PB5
 
 // time required to press the power button to initial a shutdown in milliseconds
+// the LED starts to blink while the button is pressed and becomes solid once the timeout
+// has been reached and the halt signal is sent. the button is disabled after that
+// the signal will be sent via I2C
 #define POWER_OFF_DELAY 3500
 
-// time required to force a hard reset in milliseconds
-#define HARD_RESET_DELAY 7500
 // time required to invoke a reboot in milliseconds
+// the LED starts to blink while the button is pressed. once the soft reset timeout has
+// been reached, the LED starts to blink 4 times faster. the button is still active in case
+// a hard reset is required
+// the signal will be sent via I2C
 #define SOFT_RESET_DELAY 2500
+// time required to force a hard reset in milliseconds
+// once the hard reset timeout has been reached, the LED becomes solid. the button is disabled
+// once the hard reset is invoked
+// the hard reset pulls the run pin low to force a reset
+#define HARD_RESET_DELAY 7500
 
+// if the WDT reset signal is not received for the timeout in milliseconds,
+// a soft reset is sent
+#define WATCH_DOG_SOFT_TIMEOUT 60000
+
+// if the system does not respond to the to the soft reset, the run pin will be pulled
+// low to force a reset
+#define WATCH_DOG_HARD_TIMEOUT 120000
+
+// motion sensor to enable/disable the screen or run other action if user presence is detected
 #define PIN_MOTION_SENSOR 11    // PB3
 
+// 3 WS21812 LEDs integrated into the stand
+// used to display system temperature / fan speed or run animations during reboot etc...
 #define PIN_NEOPIXEL 4          // PD4
 #define PIN_NEOPIXEL_NUM 3
 
+// server to tilt the screen
 #define PIN_TILT_SERVO 9        // PB1
 #define SERVO_MIN 84
 #define SERVO_MAX 160
 
+// PWM fan control and RPM tacho signal
 #define PIN_FAN_PWM 5           // PD5
 #define PIN_FAN_TACHO 2         // PD2/INT0
+// start up speed if no temperure is available, for example during boot
 #define FAN_STARTUP_PWM 255
+// min. pwm level that keeps the fan running. to start the fan a higher value will be used
+// TODO verify that the fan is really spinning and increase the min. level if it stalled
 #define FAN_MIN_PWM 18
+// max. fan speed
 #define FAN_MAX_PWM 255
 
 namespace Timer1 {
