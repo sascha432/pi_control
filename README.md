@@ -16,6 +16,7 @@ I have added a few comments to get a better understanding and described issues I
 - Motion sensor to turn off the screen
 - Voltage, current and energy monitoring for input and 5V output (MAX471)
 - UPS battery monitoring and shutdown when the battery state is critical
+- Buzzer for faults, low UPS battery warning any other alarm
 - Status LEDs displaying FAN speed or animations
 - Interrupt driven power, reboot and hard reset button with timeouts and LED indicators
 - Watchdog to reboot the system if it does not respond anymore
@@ -27,4 +28,5 @@ I have added a few comments to get a better understanding and described issues I
  - Control fan or set to auto mode
  - LED animations
  - Control tilt servo
+ - Buzzer control
  - MQTT support for recording metrics

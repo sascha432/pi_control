@@ -12,9 +12,6 @@
 #define I2C_SLAVE_ADDRESS 0x78
 #endif
 
-// 5, 2, 9, 4, 8, 10, 11, 12, 13, 7
-// 3
-
 // Pi 5.35V rail/USB
 #define PIN_VOLTAGE1 A0
 // 9-20V input rail
@@ -82,6 +79,9 @@ enum PinChangeFlagsEnum : uint8_t {
 
 // motion sensor to enable/disable the screen or run other action if user presence is detected
 #define PIN_MOTION_SENSOR 11    // PB3
+
+// buzzer to signal errors or alarms
+#define PIN_BUZZER 3            // PD3
 
 // 3 WS21812 LEDs integrated into the stand
 // used to display system temperature / fan speed or run animations during reboot etc...
