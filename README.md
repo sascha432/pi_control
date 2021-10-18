@@ -7,7 +7,7 @@ I have added a few comments to get a better understanding and described issues I
 
 *** this is work in progress, the feature list is not completely implemented yet. probably finished in a week or two ***
 
-## I2C Slave
+## I2C Slave (C++/AVR)
 
 - Running as I2C slave
 - PWM fan control with RPM monitoring
@@ -16,17 +16,11 @@ I have added a few comments to get a better understanding and described issues I
 - Motion sensor to turn off the screen
 - Voltage, current and energy monitoring for input and 5V output (MAX471)
 - UPS battery monitoring and shutdown when the battery state is critical
-- Buzzer for faults, low UPS battery warning any other alarm
-- Status LEDs displaying FAN speed or animations
+- Buzzer for faults, low UPS battery warning or any other alarms
+- Status LEDs displaying FAN speed or animations during boot
 - Interrupt driven power, reboot and hard reset button with timeouts and LED indicators
-- Watchdog to reboot the system if it does not respond anymore
+- Watchdog to reboot or hard reset the system if it does not respond anymore
 
-## Python Script
+## I2C Master (Python/Raspberry Pi)
 
- - Read voltage, current and energy
- - UPS low battery shutdown
- - Control fan or set to auto mode
- - LED animations
- - Control tilt servo
- - Buzzer control
- - MQTT support for recording metrics
+(https://github.com/sascha432/pi_control_master)[https://github.com/sascha432/pi_control_master]
